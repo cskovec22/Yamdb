@@ -53,3 +53,27 @@ class Review(BaseModel):
 
     def __str__(self):
         return self.text
+
+
+class Comment(BaseModel):
+    """Модель комментария."""
+    text = models.TextField('Текст комментария')
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='Автор комментария'
+    )
+    review = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='Отзыв'
+    )
+
+    class Meta:
+        verbose_name = 'комментарий'
+        verbose_name_plural = 'Комментарии'
+
+    def __str__(self):
+        return self.text
