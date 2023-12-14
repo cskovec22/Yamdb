@@ -1,8 +1,11 @@
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import viewsets
 
-from api.serializers import CommentSerializer, ReviewSerializer
+from api.serializers import (
+    CommentSerializer, ReviewSerializer, TitleSerializer
+)
 from reviews.models import Review, Title
 
 
@@ -74,3 +77,9 @@ class ReviewViewSet(viewsets.ModelViewSet):
             author=self.request.user,
             title=self.get_title()
         )
+
+
+class TitleViewSet(viewsets.ModelViewSet):
+    """Вьюсет для просмотра и редактирования произведения."""
+    queryset = Title.objects.annotate(rating=Avg('reviews__score'))
+    serializer_class = TitleSerializer

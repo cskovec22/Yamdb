@@ -41,7 +41,17 @@ class ReviewSerializer(serializers.ModelSerializer):
                 (f'Отзыв к произведению {title.pk} '  # Поменять 'pk' на 'name'
                  f'от пользователя {author.username} уже существует!')
             )
+        return data
 
     class Meta:
         fields = ['id', 'text', 'author', 'score', 'pub_date']
         model = Review
+
+
+class TitleSerializer(serializers.ModelSerializer):
+    """Сериализатор для произведения."""
+    rating = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        fields = ['id', 'rating']
+        model = Title
