@@ -87,8 +87,9 @@ class Review(models.Model):
                               on_delete=models.CASCADE,
                               related_name='review')
     text = models.TextField()
-    score = models.PositiveIntegerField(validators=[MinValueValidator(1),
-                                                    MaxValueValidator(10)])
+    score = models.PositiveSmallIntegerField(
+        'Оценка', validators=[MinValueValidator(1), MaxValueValidator(10)]
+    )
     pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
 
     def __str__(self):
