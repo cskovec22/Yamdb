@@ -1,11 +1,20 @@
 from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets
+from django.shortcuts import get_object_or_404
+from rest_framework import permissions, status, viewsets
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from reviews.models import Category, Genre, Title
+import jwt
+
+from reviews.models import Category, Genre, Title, User
 from .filters import TitleFilter
 from .permissions import IsAdminOrReadOnly
-from .serializers import CategorySerializer, GenreSerializer, TitleSerializer
+from .serializers import (AuthSerializer,
+                          CategorySerializer,
+                          GenreSerializer,
+                          TitleSerializer,
+                          TokenSerializer)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -29,3 +38,35 @@ class TitleViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend]
     filterset_class = TitleFilter
+
+
+class GetToken(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        token_serializer = TokenSerializer(data=request.data)
+        if token_serializer.is_valid(raise_exception=True):
+            try:
+                user = get_object_or_404(
+                    User,
+                    username=token_serializer.validated_data['username']
+                )
+            except User.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            if token_serializer.validated_data['confirmation_code'
+                                               ] == user.confirmation_code:
+                token = jwt.encode(AuthSerializer,
+                                   token_serializer['confirmation_code'],
+                                   algorithm='HS256')
+                return Response(
+                    {'token': token},
+                    status=status.HTTP_201_CREATED
+                )
+            return Response(
+                token_serializer.errors,
+                status=status.HTTP_404_NOT_FOUND
+            )
+        return Response(
+            token_serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+            )
