@@ -1,9 +1,31 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-
+from django.utils.translation import gettext_lazy as _
 
 User = get_user_model()
+
+
+# class CustomUser(AbstractUser):
+#     """Кастомная модель пользователя."""
+#     class Users(models.TextChoices):
+#         USER = "user", _("пользователь")
+#         MODERATOR = "moderator", _("модератор")
+#         ADMIN = "admin", _("администратор")
+
+    # bio = models.TextField(verbose_name="Биография", null=True, blank=True)
+    # role = models.TextField(
+    #     verbose_name="Роль",
+    #     choices=Users.choices,
+    #     default=Users.USER
+    # )
+    # confirmation_code = models.CharField(
+    #     verbose_name="Код подтверждения",
+    #     max_length=6,
+    #     null=True,
+    #     blank=True
+    # )
 
 
 class BaseModel(models.Model):

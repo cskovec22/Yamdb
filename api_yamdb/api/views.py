@@ -1,17 +1,20 @@
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework import viewsets
 
 from api.serializers import (
     CommentSerializer, ReviewSerializer, TitleSerializer
 )
+from api.permissions import IsAdminPermission, RolesPermission
 from reviews.models import Review, Title
 
 
 class CommentViewSet(viewsets.ModelViewSet):
     """Вьюсет для просмотра и редактирования комментария."""
     pagination_class = PageNumberPagination
+    permission_classes = (IsAuthenticatedOrReadOnly, RolesPermission, )
     serializer_class = CommentSerializer
 
     def get_review(self):
@@ -47,6 +50,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     """Вьюсет для просмотра и редактирования отзыва."""
     pagination_class = PageNumberPagination
+    permission_classes = (IsAuthenticatedOrReadOnly, RolesPermission, )
     serializer_class = ReviewSerializer
 
     def get_title(self):
@@ -81,5 +85,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class TitleViewSet(viewsets.ModelViewSet):
     """Вьюсет для просмотра и редактирования произведения."""
+    permission_classes = (IsAuthenticatedOrReadOnly, IsAdminPermission, )
     queryset = Title.objects.annotate(rating=Avg('reviews__score'))
     serializer_class = TitleSerializer
