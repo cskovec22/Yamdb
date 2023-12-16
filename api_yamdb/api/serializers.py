@@ -1,7 +1,52 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
-from reviews.models import Comment, Review, Title
+from reviews.models import Category, Comment, Genre, Review, Title, User
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    """Сериализатор для категории."""
+    class Meta:
+        model = Category
+        fields = ['name', 'slug']
+
+
+class GenreSerializer(serializers.ModelSerializer):
+    """Сериализатор для жанра."""
+    class Meta:
+        model = Genre
+        fields = ['name', 'slug']
+
+
+class TitleSerializer(serializers.ModelSerializer):
+    """Сериализатор для произведения."""
+    category = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Category.objects.all(),
+    )
+    genre = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Genre.objects.all(),
+        many=True,
+        required=False,
+    )
+    rating = serializers.IntegerField(read_only=True, default=None)
+
+    class Meta:
+        model = Title
+        fields = '__all__'
+
+
+class AuthSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('email', 'username')
+
+
+class TokenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'confirmation_code')
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -46,12 +91,3 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ['id', 'text', 'author', 'score', 'pub_date']
         model = Review
-
-
-class TitleSerializer(serializers.ModelSerializer):
-    """Сериализатор для произведения."""
-    rating = serializers.IntegerField(read_only=True, default=None)
-
-    class Meta:
-        fields = ['id', 'rating']
-        model = Title
