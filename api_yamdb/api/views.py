@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status, viewsets
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from reviews.models import Category, Genre, Review, Title, CustomUser
@@ -54,7 +54,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 class GetToken(APIView):
     # authentication_classes = [authentication.TokenAuthentication]
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny, ]
 
     def post(self, request):
         token_serializer = TokenSerializer(data=request.data)
