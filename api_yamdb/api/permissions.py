@@ -1,13 +1,21 @@
 from rest_framework import permissions
 
 
-class IsAdminOrReadOnly(permissions.BasePermission):
-    """
-    Пользователи могут просматривать объекты,
-    но только администраторы могут создавать, редактировать или удалять их.
-    """
+roles = ('admin', 'moderator')
 
-    def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return request.user and request.user.is_staff
+
+class RolesPermission(permissions.BasePermission):
+    """
+    Разрешение, позволяющее изменять объект модератору,
+    администратору или самому владельцу.
+    """
+    def has_object_permission(self, request, view, obj):
+        return (request.method in permissions.SAFE_METHODS
+                or obj.author == request.user
+                or request.user.role in roles)
+
+
+class IsAdminPermission(permissions.BasePermission):
+    """Разрешение, позволяющее изменять объект только администратору."""
+    def has_object_permission(self, request, view, obj):
+        return request.user.role == 'admin'

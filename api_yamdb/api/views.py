@@ -2,42 +2,46 @@ from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 import jwt
 
-from reviews.models import Category, Genre, Title, User
-from .filters import TitleFilter
-from .permissions import IsAdminOrReadOnly
-from .serializers import (AuthSerializer,
-                          CategorySerializer,
-                          GenreSerializer,
-                          TitleSerializer,
-                          TokenSerializer)
+from api.filters import TitleFilter
+from api.permissions import IsAdminPermission, RolesPermission
+from api.serializers import (AuthSerializer,
+                             CategorySerializer,
+                             CommentSerializer,
+                             GenreSerializer,
+                             ReviewSerializer,
+                             TitleSerializer,
+                             TokenSerializer)
+from reviews.models import Category, Genre, Review, Title, User
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
-    """Вьюсет для просмотра и редактирования категорий."""
+    """Вьюсет для просмотра и редактирования категории."""
+    permission_classes = (IsAuthenticatedOrReadOnly, IsAdminPermission, )
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [IsAdminOrReadOnly]
 
 
 class GenreViewSet(viewsets.ModelViewSet):
-    """Вьюсет для просмотра и редактирования жанров."""
+    """Вьюсет для просмотра и редактирования жанра."""
+    permission_classes = (IsAuthenticatedOrReadOnly, IsAdminPermission, )
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = [IsAdminOrReadOnly]
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    """Вьюсет для просмотра и редактирования произведений."""
+    """Вьюсет для просмотра и редактирования произведения."""
+    filterset_class = TitleFilter
+    filter_backends = [DjangoFilterBackend]
+    permission_classes = (IsAuthenticatedOrReadOnly, IsAdminPermission, )
     queryset = Title.objects.annotate(rating=Avg('reviews__score'))
     serializer_class = TitleSerializer
-    permission_classes = [IsAdminOrReadOnly]
-    filter_backends = [DjangoFilterBackend]
-    filterset_class = TitleFilter
 
 
 class GetToken(APIView):
@@ -70,3 +74,75 @@ class GetToken(APIView):
             token_serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
             )
+
+      
+class CommentViewSet(viewsets.ModelViewSet):
+    """Вьюсет для просмотра и редактирования комментария."""
+    pagination_class = PageNumberPagination
+    permission_classes = (IsAuthenticatedOrReadOnly, RolesPermission, )
+    serializer_class = CommentSerializer
+
+    def get_review(self):
+        """Получает конкретный отзыв."""
+        review_id = self.kwargs.get('review_id')
+        return get_object_or_404(Review, pk=review_id)
+
+    def get_queryset(self):
+        """Возвращает queryset c комментариями для конкретного отзыва."""
+        return self.get_review().comments.all()
+
+    def perform_create(self, serializer):
+        """
+        Создает комментарий для конкретного отзыва, где автор -
+        текущий пользователь.
+        """
+        serializer.save(
+            author=self.request.user,
+            review=self.get_review()
+        )
+
+    def perform_update(self, serializer):
+        """
+        Редактирует комментарий для конкретного отзыва, где автор -
+        текущий пользователь.
+        """
+        serializer.save(
+            author=self.request.user,
+            review=self.get_review()
+        )
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    """Вьюсет для просмотра и редактирования отзыва."""
+    pagination_class = PageNumberPagination
+    permission_classes = (IsAuthenticatedOrReadOnly, RolesPermission, )
+    serializer_class = ReviewSerializer
+
+    def get_title(self):
+        """Получает конкретное произведение."""
+        title_id = self.kwargs.get('title_id')
+        return get_object_or_404(Title, pk=title_id)
+
+    def get_queryset(self):
+        """Возвращает queryset c отзывами для конкретного произведения."""
+        return self.get_title().reviews.all()
+
+    def perform_create(self, serializer):
+        """
+        Создает отзыв для конкретного произведения, где автор -
+        текущий пользователь.
+        """
+        serializer.save(
+            author=self.request.user,
+            title=self.get_title()
+        )
+
+    def perform_update(self, serializer):
+        """
+        Редактирует отзыв для конкретного произведения, где автор -
+        текущий пользователь.
+        """
+        serializer.save(
+            author=self.request.user,
+            title=self.get_title()
+        )
