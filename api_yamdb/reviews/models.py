@@ -1,16 +1,18 @@
 import datetime as dt
 
+# from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
-ROLES = [
-    ('user', 'Пользователь'),
-    ('moderator', 'Модератор'),
-    ('admin', 'Администратор')
-]
+# ROLES = [
+#     ('user', 'Пользователь'),
+#     ('moderator', 'Модератор'),
+#     ('admin', 'Администратор')
+# ]
 
 
 class BaseModel(models.Model):
@@ -24,68 +26,71 @@ class BaseModel(models.Model):
         abstract = True
 
 
-class User(AbstractUser):
-    username = models.CharField(
-        'Имя пользователя',
-        max_length=150,
-        unique=True
-    )
-    first_name = models.CharField(
-        'Имя',
-        max_length=150,
-        blank=True
-    )
-    last_name = models.CharField(
-        'Фамилия',
-        max_length=150,
-        blank=True
-    )
-    email = models.EmailField(
-        'Почта',
-        max_length=254,
-        unique=True
-    )
-    bio = models.TextField('Биография', blank=True)
-    role = models.CharField(
-        'Роль',
-        choices=ROLES,
-        default='user',
-        max_length=len('moderator')
-    )
-    confirmation_code = models.CharField(
-        "Код подтверждения",
-        blank=True,
-        max_length=6,
-        null=True
-    )
-
-    def is_admin(self):
-        return self.is_staff or self.role == 'admin'
-
-    class Meta:
-        ordering = ('username', )
-        verbose_name = 'пользователь'
-        verbose_name_plural = 'Пользователи'
+# User = get_user_model()
 
 
-# class CustomUser(AbstractUser):
-#     class Users(models.TextChoices):
-#         USER = "user", _("пользователь")
-#         MODERATOR = "moderator", _("модератор")
-#         ADMIN = "admin", _("администратор")
-
-#     bio = models.TextField(verbose_name="Биография", null=True, blank=True)
-#     role = models.TextField(
-#         verbose_name="Роль",
-#         choices=Users.choices,
-#         default=Users.USER
+# class User(AbstractUser):
+#     username = models.CharField(
+#         'Имя пользователя',
+#         max_length=150,
+#         unique=True
 #     )
-#     confirmation_code = models.CharField(
-#         verbose_name="Код подтверждения",
-#         max_length=6,
-#         null=True,
+#     first_name = models.CharField(
+#         'Имя',
+#         max_length=150,
 #         blank=True
 #     )
+#     last_name = models.CharField(
+#         'Фамилия',
+#         max_length=150,
+#         blank=True
+#     )
+#     email = models.EmailField(
+#         'Почта',
+#         max_length=254,
+#         unique=True
+#     )
+#     bio = models.TextField('Биография', blank=True)
+#     role = models.CharField(
+#         'Роль',
+#         choices=ROLES,
+#         default='user',
+#         max_length=len('moderator')
+#     )
+#     confirmation_code = models.CharField(
+#         "Код подтверждения",
+#         blank=True,
+#         max_length=6,
+#         null=True
+#     )
+
+#     def is_admin(self):
+#         return self.is_staff or self.role == 'admin'
+
+#     class Meta:
+#         ordering = ('username', )
+#         verbose_name = 'пользователь'
+#         verbose_name_plural = 'Пользователи'
+
+
+class CustomUser(AbstractUser):
+    class Users(models.TextChoices):
+        USER = "user", _("пользователь")
+        MODERATOR = "moderator", _("модератор")
+        ADMIN = "admin", _("администратор")
+
+    bio = models.TextField(verbose_name="Биография", null=True, blank=True)
+    role = models.TextField(
+        verbose_name="Роль",
+        choices=Users.choices,
+        default=Users.USER
+    )
+    confirmation_code = models.CharField(
+        verbose_name="Код подтверждения",
+        max_length=6,
+        null=True,
+        blank=True
+    )
 
 
 class Category(models.Model):
@@ -178,7 +183,7 @@ class Review(BaseModel):
     """Модель отзыва."""
     text = models.TextField('Текст отзыва')
     author = models.ForeignKey(
-        User,
+        CustomUser,
         on_delete=models.CASCADE,
         related_name='reviews',
         verbose_name='Автор отзыва'
@@ -213,7 +218,7 @@ class Comment(BaseModel):
     """Модель комментария."""
     text = models.TextField('Текст комментария')
     author = models.ForeignKey(
-        User,
+        CustomUser,
         on_delete=models.CASCADE,
         related_name='comments',
         verbose_name='Автор комментария'

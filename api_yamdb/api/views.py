@@ -10,21 +10,21 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from reviews.models import Category, Genre, Review, Title, User
+from reviews.models import Category, Genre, Review, Title, CustomUser
 
 from api.filters import TitleFilter
 from api.permissions import IsAdminPermission, RolesPermission
 from api.serializers import (AuthSerializer, CategorySerializer,
                              CommentSerializer, GenreSerializer,
                              ReviewSerializer, TitleSerializer,
-                             TokenSerializer, UserSerializer)
+                             TokenSerializer, CustomUserSerializer)
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
+class CustomUserViewSet(viewsets.ModelViewSet):
+    queryset = CustomUser.objects.all()
     # filter_backends = (filters.SearchFilter,)
     # search_fields = ('username',)
-    serializer_class = UserSerializer
+    serializer_class = CustomUserSerializer
     permission_classes = (IsAdminPermission, )
     lookup_field = 'username'
 
@@ -61,10 +61,10 @@ class GetToken(APIView):
         if token_serializer.is_valid(raise_exception=True):
             try:
                 user = get_object_or_404(
-                    User,
+                    CustomUser,
                     username=token_serializer.validated_data['username']
                 )
-            except User.DoesNotExist:
+            except CustomUser.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
             if token_serializer.validated_data[
                 'confirmation_code'

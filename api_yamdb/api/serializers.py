@@ -1,18 +1,18 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
-from reviews.models import Category, Comment, Genre, Review, Title, User
+from reviews.models import Category, Comment, Genre, Review, Title, CustomUser
 
 
 class AuthSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
+        model = CustomUser
         fields = ('email', 'username')
 
 
 class TokenSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
+        model = CustomUser
         fields = ('username', 'confirmation_code')
         extra_kwargs = {
             'username': {
@@ -21,7 +21,7 @@ class TokenSerializer(serializers.ModelSerializer):
         }
 
 
-class UserSerializer(serializers.ModelSerializer):
+class CustomUserSerializer(serializers.ModelSerializer):
     def validate_username(self, username):
         """
         Проверяет, что значение поля 'username' не 'me'.
@@ -33,7 +33,7 @@ class UserSerializer(serializers.ModelSerializer):
         return username
 
     class Meta:
-        model = User
+        model = CustomUser
         fields = ('username', 'email', 'first_name',
                   'last_name', 'bio', 'role')
 
