@@ -4,6 +4,23 @@ from rest_framework import serializers
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
 
+class AuthSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('email', 'username')
+
+
+class TokenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'confirmation_code')
+        extra_kwargs = {
+            'username': {
+                'validators': []
+            }
+        }
+
+
 class CategorySerializer(serializers.ModelSerializer):
     """Сериализатор для категории."""
     class Meta:
@@ -35,18 +52,6 @@ class TitleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Title
         fields = '__all__'
-
-
-class AuthSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ('email', 'username')
-
-
-class TokenSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ('username', 'confirmation_code')
 
 
 class CommentSerializer(serializers.ModelSerializer):

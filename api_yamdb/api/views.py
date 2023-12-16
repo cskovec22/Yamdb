@@ -1,3 +1,6 @@
+from random import randint
+
+from django.core.mail import send_mail
 from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
@@ -45,6 +48,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 
 class GetToken(APIView):
+    # authentication_classes = [authentication.TokenAuthentication]
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -57,25 +61,49 @@ class GetToken(APIView):
                 )
             except User.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
-            if token_serializer.validated_data['confirmation_code'
-                                               ] == user.confirmation_code:
-                token = jwt.encode(AuthSerializer,
-                                   token_serializer['confirmation_code'],
+            if token_serializer.validated_data['confirmation_code'] == user.confirmation_code:
+                token_data = {'username': user.username}
+                token = jwt.encode(token_data,
+                                   str(token_serializer['confirmation_code']),
                                    algorithm='HS256')
                 return Response(
                     {'token': token},
                     status=status.HTTP_201_CREATED
                 )
             return Response(
-                token_serializer.errors,
+                {'error': 'Invalid confirmation code'},
                 status=status.HTTP_404_NOT_FOUND
             )
         return Response(
             token_serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+class SignUp(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, format=None):
+        auth_serializer = AuthSerializer(data=request.data)
+        if auth_serializer.is_valid():
+            auth_serializer.save()
+            user = auth_serializer.save()
+            user.confirmation_code = randint(10000, 99999)
+            auth_serializer.save()
+            email = auth_serializer.validated_data.get('email')
+            send_mail(
+                subject='Your confirmation code',
+                message=f'{user.confirmation_code} - confirmation code',
+                from_email='from@yamdb.com',
+                recipient_list=[f'{email}'],
+                fail_silently=False,
             )
 
-      
+            return Response(auth_serializer.data)
+
+        return Response({'field_name': auth_serializer.errors})
+
+
 class CommentViewSet(viewsets.ModelViewSet):
     """Вьюсет для просмотра и редактирования комментария."""
     pagination_class = PageNumberPagination
