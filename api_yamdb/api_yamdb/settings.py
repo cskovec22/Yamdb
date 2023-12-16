@@ -70,6 +70,7 @@ DATABASES = {
     }
 }
 
+AUTH_USER_MODEL = 'reviews.User'
 
 # Password validation
 

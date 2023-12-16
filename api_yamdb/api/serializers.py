@@ -21,6 +21,23 @@ class TokenSerializer(serializers.ModelSerializer):
         }
 
 
+class UserSerializer(serializers.ModelSerializer):
+    def validate_username(self, username):
+        """
+        Проверяет, что значение поля 'username' не 'me'.
+        """
+        if username == 'me':
+            raise serializers.ValidationError(
+                'Данное имя пользователя запрещено!'
+            )
+        return username
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'first_name',
+                  'last_name', 'bio', 'role')
+
+
 class CategorySerializer(serializers.ModelSerializer):
     """Сериализатор для категории."""
     class Meta:

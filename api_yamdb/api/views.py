@@ -1,27 +1,32 @@
 from random import randint
 
+import jwt
 from django.core.mail import send_mail
 from django.db.models import Avg
-from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status, viewsets
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-import jwt
+from reviews.models import Category, Genre, Review, Title, User
 
 from api.filters import TitleFilter
 from api.permissions import IsAdminPermission, RolesPermission
-from api.serializers import (AuthSerializer,
-                             CategorySerializer,
-                             CommentSerializer,
-                             GenreSerializer,
-                             ReviewSerializer,
-                             TitleSerializer,
-                             TokenSerializer)
-from reviews.models import Category, Genre, Review, Title, User
+from api.serializers import (AuthSerializer, CategorySerializer,
+                             CommentSerializer, GenreSerializer,
+                             ReviewSerializer, TitleSerializer,
+                             TokenSerializer, UserSerializer)
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    # filter_backends = (filters.SearchFilter,)
+    # search_fields = ('username',)
+    serializer_class = UserSerializer
+    permission_classes = (IsAdminPermission, )
+    lookup_field = 'username'
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -61,7 +66,9 @@ class GetToken(APIView):
                 )
             except User.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
-            if token_serializer.validated_data['confirmation_code'] == user.confirmation_code:
+            if token_serializer.validated_data[
+                'confirmation_code'
+            ] == user.confirmation_code:
                 token_data = {'username': user.username}
                 token = jwt.encode(token_data,
                                    str(token_serializer['confirmation_code']),
@@ -91,6 +98,7 @@ class SignUp(APIView):
             user.confirmation_code = randint(10000, 99999)
             auth_serializer.save()
             email = auth_serializer.validated_data.get('email')
+
             send_mail(
                 subject='Your confirmation code',
                 message=f'{user.confirmation_code} - confirmation code',
