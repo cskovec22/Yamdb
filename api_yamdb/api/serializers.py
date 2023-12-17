@@ -15,12 +15,18 @@ class AuthSerializer(serializers.ModelSerializer):
     )
     username = serializers.SlugField(
         validators=[UniqueValidator(queryset=CustomUser.objects.all())],
-        max_length=254
+        max_length=150
     )
 
-    class Meta:
-        model = CustomUser
-        fields = ('email', 'username')
+    def validate_username(self, value):
+        """
+        Проверяет, что значение поля 'username' не 'me'.
+        """
+        if value == 'me':
+            raise serializers.ValidationError(
+                'Данное имя пользователя запрещено!'
+            )
+        return value
 
 
 class Token():

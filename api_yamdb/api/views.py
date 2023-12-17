@@ -136,13 +136,10 @@ class Token(APIView):
     def post(self, request):
         serializer = TokenSerializer(data=request.data)
         if serializer.is_valid():
-            user = get_object_or_404(
-                CustomUser,
-                username=serializer.validated_data.get('username')
-            )
+            user = get_object_or_404(CustomUser, username=serializer.validated_data.get('username'))
             token = get_tokens_for_user(user)
             return Response(token)
-        return Response(serializer.errors)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class SignUp(APIView):
@@ -161,7 +158,7 @@ class SignUp(APIView):
             )
             serializer.save(confirmation_code=confirmation_code)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CommentViewSet(MixinsViewSet):
