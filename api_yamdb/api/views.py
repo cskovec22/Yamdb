@@ -33,10 +33,28 @@ class MixinsViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 class CustomUserViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdminOnlyPermission, )
     queryset = CustomUser.objects.all()
-    # filter_backends = (filters.SearchFilter,)
-    # search_fields = ('username',)
     serializer_class = CustomUserSerializer
     lookup_field = 'username'
+
+
+class UsersMeView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        user = CustomUser.objects.get(username=request.user.username)
+        serializer = CustomUserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        user = CustomUser.objects.get(username=request.user.username)
+        serializer = CustomUserSerializer(
+            user,
+            data=request.data,
+            partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CategoryViewSet(MixinsViewSet):
@@ -142,7 +160,7 @@ class SignUp(APIView):
                 fail_silently=False,
             )
             serializer.save(confirmation_code=confirmation_code)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors)
 
 

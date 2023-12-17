@@ -56,6 +56,8 @@ class TokenSerializer(serializers.Serializer):
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(read_only=True, default='user')
+
     def validate_username(self, username):
         """
         Проверяет, что значение поля 'username' не 'me'.
