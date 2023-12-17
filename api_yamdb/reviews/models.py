@@ -1,17 +1,11 @@
 import datetime as dt
 
-# from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
-# ROLES = [
-#     ('user', 'Пользователь'),
-#     ('moderator', 'Модератор'),
-#     ('admin', 'Администратор')
-# ]
 
 
 class BaseModel(models.Model):
@@ -25,81 +19,55 @@ class BaseModel(models.Model):
         abstract = True
 
 
-# User = get_user_model()
-
-
-# class User(AbstractUser):
-#     username = models.CharField(
-#         'Имя пользователя',
-#         max_length=150,
-#         unique=True
-#     )
-#     first_name = models.CharField(
-#         'Имя',
-#         max_length=150,
-#         blank=True
-#     )
-#     last_name = models.CharField(
-#         'Фамилия',
-#         max_length=150,
-#         blank=True
-#     )
-#     email = models.EmailField(
-#         'Почта',
-#         max_length=254,
-#         unique=True
-#     )
-#     bio = models.TextField('Биография', blank=True)
-#     role = models.CharField(
-#         'Роль',
-#         choices=ROLES,
-#         default='user',
-#         max_length=len('moderator')
-#     )
-#     confirmation_code = models.CharField(
-#         "Код подтверждения",
-#         blank=True,
-#         max_length=6,
-#         null=True
-#     )
-
-#     def is_admin(self):
-#         return self.is_staff or self.role == 'admin'
-
-#     class Meta:
-#         ordering = ('username', )
-#         verbose_name = 'пользователь'
-#         verbose_name_plural = 'Пользователи'
-
-
 class CustomUser(AbstractUser):
+    """Кастомная модель юзера."""
+    username_validator = UnicodeUsernameValidator()
+
     class Users(models.TextChoices):
         USER = "user", _("пользователь")
         MODERATOR = "moderator", _("модератор")
         ADMIN = "admin", _("администратор")
 
-    bio = models.TextField(verbose_name="Биография", null=True, blank=True)
+    username = models.CharField(
+        max_length=150,
+        unique=True,
+        validators=[username_validator],
+        verbose_name='Имя пользователя'
+    )
+    first_name = models.CharField(
+        blank=True, max_length=150, verbose_name='Имя'
+    )
+    last_name = models.CharField(
+        blank=True, max_length=150, verbose_name='Фамилия'
+    )
+    email = models.EmailField(
+        max_length=254, unique=True, verbose_name='Почта'
+    )
+    bio = models.TextField(
+        blank=True, verbose_name='Биография'
+    )
     role = models.TextField(
-        verbose_name="Роль",
         choices=Users.choices,
-        default=Users.USER
+        default=Users.USER,
+        verbose_name="Роль"
     )
-    confirmation_code = models.CharField(
-        verbose_name="Код подтверждения",
-        max_length=6,
-        null=True,
-        blank=True
-    )
+
+    class Meta:
+        ordering = ('username',)
+        verbose_name = 'пользователь'
+        verbose_name_plural = 'Пользователи'
 
 
 class Category(models.Model):
     name = models.CharField(
         max_length=256,
+        unique=True,
         verbose_name='Категория и описание'
     )
     slug = models.SlugField(
         max_length=50,
         unique=True,
+        verbose_name='slug категории'
     )
 
     class Meta:
@@ -114,11 +82,13 @@ class Category(models.Model):
 class Genre(models.Model):
     name = models.CharField(
         max_length=256,
+        unique=True,
         verbose_name='Жанр и описание'
     )
     slug = models.SlugField(
         max_length=50,
         unique=True,
+        verbose_name='slug жанра'
     )
 
     class Meta:
@@ -135,21 +105,23 @@ class Title(models.Model):
         max_length=256,
         verbose_name='Название'
     )
-    year = models.IntegerField(db_index=True)
+    year = models.IntegerField(
+        db_index=True, verbose_name='Год'
+    )
     description = models.TextField(
-        verbose_name='Описание',
         blank=True,
-        null=True
+        null=True,
+        verbose_name='Описание'
     )
     genre = models.ManyToManyField(
         Genre,
         through="GenreTitle",
+        verbose_name='Жанр'
     )
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
         related_name='titles',
-        blank=True,
         null=True,
         verbose_name='Категория'
     )
@@ -166,7 +138,7 @@ class Title(models.Model):
     def validate(year):
         if dt.datetime.now().year <= year:
             raise ValidationError(
-                'Нельзя материалы произведения из будущего!'
+                'Нельзя выкладывать материалы произведения из будущего!'
             )
 
 
@@ -205,7 +177,7 @@ class Review(BaseModel):
                 name='review_author_title_unique',
             ),
         )
-        ordering = ('text', )
+        ordering = ('-pub_date', )
         verbose_name = 'отзыв'
         verbose_name_plural = 'Отзывы'
 
@@ -230,7 +202,7 @@ class Comment(BaseModel):
     )
 
     class Meta:
-        ordering = ('text', )
+        ordering = ('-pub_date', )
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
 

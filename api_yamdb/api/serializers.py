@@ -7,11 +7,11 @@ from rest_framework.validators import UniqueValidator
 from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
 
 
-class AuthSerializer(serializers.ModelSerializer):
+class AuthSerializer(serializers.Serializer):
 
     email = serializers.EmailField(
         validators=[UniqueValidator(queryset=CustomUser.objects.all())],
-        max_length=150
+        max_length=254
     )
     username = serializers.SlugField(
         validators=[UniqueValidator(queryset=CustomUser.objects.all())],
@@ -45,20 +45,6 @@ class TokenSerializer(serializers.Serializer):
         if user.confirmation_code != data['confirmation_code']:
             raise serializers.ValidationError("Неправильный код подтверждения!")
         return data
-
-
-# class TokenSerializer(serializers.ModelSerializer):
-#     username = serializers.CharField(max_length=150)
-#     confirmation_code = serializers.CharField(max_length=200)
-
-#     class Meta:
-#         model = CustomUser
-#         fields = ('username', 'confirmation_code')
-#         extra_kwargs = {
-#             'username': {
-#                 'validators': []
-#             }
-#         }
 
 
 class CustomUserSerializer(serializers.ModelSerializer):

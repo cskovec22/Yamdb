@@ -14,7 +14,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from reviews.models import Category, CustomUser, Genre, Review, Title
 
 from api.filters import TitleFilter
-from api.permissions import (IsAdminOnlyPermission,
+from api.permissions import (IsAdminOnlyPermission, IsAdminObjectReadOnlyPermission,
                              IsAdminOrReadOnlyPermission, RolesPermission)
 from api.serializers import (AuthSerializer, CategorySerializer,
                              CommentSerializer, CustomUserSerializer,
@@ -26,13 +26,15 @@ from api.serializers import (AuthSerializer, CategorySerializer,
 class MixinsViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
                     mixins.RetrieveModelMixin, mixins.DestroyModelMixin,
                     mixins.UpdateModelMixin, viewsets.GenericViewSet):
-    permission_classes = (IsAdminOrReadOnlyPermission,)
+    # permission_classes = (IsAdminOrReadOnlyPermission, )
     http_method_names = ['get', 'post', 'patch', 'delete']
 
 
 class CustomUserViewSet(viewsets.ModelViewSet):
+    filter_backends = (filters.SearchFilter, )
     permission_classes = (IsAdminOnlyPermission, )
     queryset = CustomUser.objects.all()
+    search_fields = ('username',)
     serializer_class = CustomUserSerializer
     lookup_field = 'username'
 
@@ -52,7 +54,7 @@ class UsersMeView(APIView):
             data=request.data,
             partial=True
         )
-        if serializer.is_valid():
+        if serializer.is_valid():    
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -60,6 +62,8 @@ class UsersMeView(APIView):
 class CategoryViewSet(MixinsViewSet):
     """Вьюсет для просмотра и редактирования категории."""
     filter_backends = (filters.SearchFilter, )
+    # lookup_field = 'slug'
+    permission_classes = (IsAdminObjectReadOnlyPermission, )
     search_fields = ('name', )
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
@@ -67,8 +71,9 @@ class CategoryViewSet(MixinsViewSet):
 
 class GenreViewSet(MixinsViewSet):
     """Вьюсет для просмотра и редактирования жанра."""
-    # permission_classes = (IsAdminOrReadOnlyPermission, )
     filter_backends = (filters.SearchFilter, )
+    # lookup_field = 'slug'
+    permission_classes = (IsAdminObjectReadOnlyPermission, )
     search_fields = ('name', )
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
@@ -78,6 +83,7 @@ class TitleViewSet(MixinsViewSet):
     """Вьюсет для просмотра и редактирования произведения."""
     filterset_class = TitleFilter
     filter_backends = [DjangoFilterBackend]
+    permission_classes = (IsAdminOrReadOnlyPermission, )
     queryset = Title.objects.annotate(rating=Avg('reviews__score'))
     # serializer_class = TitleSerializer
 
@@ -86,41 +92,6 @@ class TitleViewSet(MixinsViewSet):
             return TitleGetSerializer
         return TitlePostSerializer
 
-
-# class GetToken(APIView):
-#     # authentication_classes = [authentication.TokenAuthentication]
-#     permission_classes = [AllowAny, ]
-
-#     def post(self, request):
-#         token_serializer = TokenSerializer(data=request.data)
-#         if token_serializer.is_valid(raise_exception=True):
-#             try:
-#                 user = get_object_or_404(
-#                     CustomUser,
-#                     username=token_serializer.validated_data['username']
-#                 )
-#             except CustomUser.DoesNotExist:
-#                 return Response(status=status.HTTP_404_NOT_FOUND)
-#             print(token_serializer.validated_data)
-#             if token_serializer.validated_data[
-#                 'confirmation_code'
-#             ] == user.confirmation_code:
-#                 token_data = {'username': user.username}
-#                 token = jwt.encode(token_data,
-#                                    str(token_serializer['confirmation_code']),
-#                                    algorithm='HS256')
-#                 return Response(
-#                     {'token': token},
-#                     status=status.HTTP_201_CREATED
-#                 )
-#             return Response(
-#                 {'error': 'Invalid confirmation code'},
-#                 status=status.HTTP_404_NOT_FOUND
-#             )
-#         return Response(
-#             token_serializer.errors,
-#             status=status.HTTP_400_BAD_REQUEST
-#         )
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
