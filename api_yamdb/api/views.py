@@ -5,7 +5,7 @@ from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import mixins, permissions, status, viewsets
+from rest_framework import filters, mixins, permissions, status, viewsets
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
@@ -19,7 +19,8 @@ from api.permissions import (IsAdminOnlyPermission,
 from api.serializers import (AuthSerializer, CategorySerializer,
                              CommentSerializer, CustomUserSerializer,
                              GenreSerializer, ReviewSerializer,
-                             TitleSerializer, TokenSerializer)
+                             TitleGetSerializer, TitlePostSerializer,
+                             TokenSerializer)
 
 
 class MixinsViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
@@ -40,6 +41,8 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 
 class CategoryViewSet(MixinsViewSet):
     """Вьюсет для просмотра и редактирования категории."""
+    filter_backends = (filters.SearchFilter, )
+    search_fields = ('name', )
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
@@ -47,6 +50,8 @@ class CategoryViewSet(MixinsViewSet):
 class GenreViewSet(MixinsViewSet):
     """Вьюсет для просмотра и редактирования жанра."""
     # permission_classes = (IsAdminOrReadOnlyPermission, )
+    filter_backends = (filters.SearchFilter, )
+    search_fields = ('name', )
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
 
@@ -55,12 +60,13 @@ class TitleViewSet(MixinsViewSet):
     """Вьюсет для просмотра и редактирования произведения."""
     filterset_class = TitleFilter
     filter_backends = [DjangoFilterBackend]
-    # permission_classes = (
-    #     IsAuthenticatedOrReadOnly,
-    #     IsAdminOrReadOnlyPermission,
-    # )
     queryset = Title.objects.annotate(rating=Avg('reviews__score'))
-    serializer_class = TitleSerializer
+    # serializer_class = TitleSerializer
+
+    def get_serializer_class(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return TitleGetSerializer
+        return TitlePostSerializer
 
 
 # class GetToken(APIView):

@@ -1,3 +1,6 @@
+from datetime import datetime
+
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
@@ -83,8 +86,20 @@ class GenreSerializer(serializers.ModelSerializer):
         fields = ['name', 'slug']
 
 
-class TitleSerializer(serializers.ModelSerializer):
+class TitleGetSerializer(serializers.ModelSerializer):
     """Сериализатор для произведения."""
+    category = CategorySerializer()
+    genre = GenreSerializer(many=True)
+    rating = serializers.IntegerField()
+
+    class Meta:
+        fields = '__all__'
+        model = Title
+        read_only_fields = ['__all__']
+
+
+class TitlePostSerializer(serializers.ModelSerializer):
+    """Сериализатор для создания произведения."""
     category = serializers.SlugRelatedField(
         slug_field='slug',
         queryset=Category.objects.all(),
@@ -95,7 +110,9 @@ class TitleSerializer(serializers.ModelSerializer):
         many=True,
         # required=False,
     )
-    rating = serializers.IntegerField(read_only=True, default=None)
+    year = serializers.IntegerField(
+        validators=[MaxValueValidator(datetime.now().year)]
+    )
 
     class Meta:
         model = Title
