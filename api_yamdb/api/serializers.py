@@ -1,24 +1,55 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-
-from reviews.models import Category, Comment, Genre, Review, Title, CustomUser
+from rest_framework.validators import UniqueValidator
+from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
 
 
 class AuthSerializer(serializers.ModelSerializer):
+
+    email = serializers.EmailField(
+        validators=[UniqueValidator(queryset=CustomUser.objects.all())],
+        max_length=150
+    )
+    username = serializers.SlugField(
+        validators=[UniqueValidator(queryset=CustomUser.objects.all())],
+        max_length=254
+    )
+
     class Meta:
         model = CustomUser
         fields = ('email', 'username')
 
 
-class TokenSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CustomUser
-        fields = ('username', 'confirmation_code')
-        extra_kwargs = {
-            'username': {
-                'validators': []
-            }
-        }
+class Token():
+    def init(self, username, confirmation_code):
+        self.username = username
+        self.confirmation_code = confirmation_code
+
+
+class TokenSerializer(serializers.Serializer):
+
+    username = serializers.SlugField(max_length=150)
+    confirmation_code = serializers.CharField()
+
+    def validate(self, data):
+        user = get_object_or_404(CustomUser, username=data['username'])
+        if user.confirmation_code != data['confirmation_code']:
+            raise serializers.ValidationError("Неправильный код подтверждения!")
+        return data
+
+
+# class TokenSerializer(serializers.ModelSerializer):
+#     username = serializers.CharField(max_length=150)
+#     confirmation_code = serializers.CharField(max_length=200)
+
+#     class Meta:
+#         model = CustomUser
+#         fields = ('username', 'confirmation_code')
+#         extra_kwargs = {
+#             'username': {
+#                 'validators': []
+#             }
+#         }
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -62,7 +93,7 @@ class TitleSerializer(serializers.ModelSerializer):
         slug_field='slug',
         queryset=Genre.objects.all(),
         many=True,
-        required=False,
+        # required=False,
     )
     rating = serializers.IntegerField(read_only=True, default=None)
 

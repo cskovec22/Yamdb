@@ -7,7 +7,6 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-
 # ROLES = [
 #     ('user', 'Пользователь'),
 #     ('moderator', 'Модератор'),
@@ -142,7 +141,7 @@ class Title(models.Model):
         blank=True,
         null=True
     )
-    genres = models.ManyToManyField(
+    genre = models.ManyToManyField(
         Genre,
         through="GenreTitle",
     )
