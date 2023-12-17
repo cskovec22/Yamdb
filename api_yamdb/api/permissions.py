@@ -9,10 +9,15 @@ class IsAdminOrReadOnlyPermission(permissions.BasePermission):
     либо другому пользователю только для чтения.
     """
     def has_permission(self, request, view):
+        return (request.method in permissions.SAFE_METHODS
+                or request.user.is_authenticated
+                and request.user.role == ROLES[0])
+
+    def has_object_permission(self, request, view, obj):
         return (
-            request.method in permissions.SAFE_METHODS
+            # request.method in permissions.SAFE_METHODS
             # or request.user.is_authenticated and request.user.is_staff()
-            or request.user.is_authenticated and request.user.role == ROLES[0]
+            request.user.is_authenticated and request.user.role == ROLES[0]
 
         )
 
@@ -36,6 +41,6 @@ class RolesPermission(permissions.BasePermission):
             obj.author == request.user
             or request.method in permissions.SAFE_METHODS
             # or request.user.is_authenticated and request.user.is_staff()
-            or request.user.is_authenticated and request.user.role == ROLES[0]
-            or request.user.is_authenticated and request.user.role == ROLES[1]
+            # or request.user.is_authenticated and request.user.role == ROLES[0]
+            or request.user.is_authenticated and request.user.role in ROLES
         )

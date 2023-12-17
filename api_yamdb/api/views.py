@@ -30,6 +30,7 @@ class MixinsViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
 
 class CustomUserViewSet(viewsets.ModelViewSet):
+    permission_classes = (IsAdminOnlyPermission, )
     queryset = CustomUser.objects.all()
     # filter_backends = (filters.SearchFilter,)
     # search_fields = ('username',)
@@ -54,10 +55,10 @@ class TitleViewSet(MixinsViewSet):
     """Вьюсет для просмотра и редактирования произведения."""
     filterset_class = TitleFilter
     filter_backends = [DjangoFilterBackend]
-    permission_classes = (
-        IsAuthenticatedOrReadOnly,
-        IsAdminOrReadOnlyPermission,
-    )
+    # permission_classes = (
+    #     IsAuthenticatedOrReadOnly,
+    #     IsAdminOrReadOnlyPermission,
+    # )
     queryset = Title.objects.annotate(rating=Avg('reviews__score'))
     serializer_class = TitleSerializer
 
