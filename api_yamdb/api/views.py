@@ -78,23 +78,6 @@ class CustomUserViewSet(MixinsViewSet):
     serializer_class = CustomUserSerializer
     lookup_field = 'username'
 
-    # @action(
-    #     detail=False,
-    #     methods=('get', 'patch'),
-    #     permission_classes=(permissions.IsAuthenticated,)
-    # )
-    # def me(self, request):
-    #     if request.method == 'GET':
-    #         serializer = self.get_serializer(request.user)
-    #         return Response(data=serializer.data)
-    #     if request.method == 'PATCH':
-    #         serializer = self.get_serializer(
-    #             request.user, data=request.data, partial=True
-    #         )
-    #         serializer.is_valid(raise_exception=True)
-    #         serializer.save(role=request.user.role)
-    #         return Response(data=serializer.data)
-
 
 class UsersMeView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
@@ -114,6 +97,7 @@ class UsersMeView(APIView):
         if serializer.is_valid():
             serializer.save(role=request.user.role)
             return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CategorySlugView(APIView):
