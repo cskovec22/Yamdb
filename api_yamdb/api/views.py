@@ -6,6 +6,7 @@ from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
@@ -77,25 +78,42 @@ class CustomUserViewSet(MixinsViewSet):
     serializer_class = CustomUserSerializer
     lookup_field = 'username'
 
+    @action(
+        detail=False,
+        methods=('get', 'patch'),
+        permission_classes=(permissions.IsAuthenticated,)
+    )
+    def me(self, request):
+        if request.method == 'GET':
+            serializer = self.get_serializer(request.user)
+            return Response(data=serializer.data)
+        if request.method == 'PATCH':
+            serializer = self.get_serializer(
+                request.user, data=request.data, partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save(role=request.user.role)
+            return Response(data=serializer.data)
 
-class UsersMeView(APIView):
-    permission_classes = (permissions.IsAuthenticated,)
 
-    def get(self, request):
-        user = CustomUser.objects.get(username=request.user.username)
-        serializer = CustomUserSerializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+# class UsersMeView(APIView):
+#     permission_classes = (permissions.IsAuthenticated,)
 
-    def patch(self, request):
-        user = CustomUser.objects.get(username=request.user.username)
-        serializer = CustomUserSerializer(
-            user,
-            data=request.data,
-            partial=True
-        )
-        if serializer.is_valid():    
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+#     def get(self, request):
+#         user = CustomUser.objects.get(username=request.user.username)
+#         serializer = CustomUserSerializer(user)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+
+#     def patch(self, request):
+#         user = CustomUser.objects.get(username=request.user.username)
+#         serializer = CustomUserSerializer(
+#             user,
+#             data=request.data,
+#             partial=True
+#         )
+#         if serializer.is_valid():    
+#             serializer.save()
+#             return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CategorySlugView(APIView):
