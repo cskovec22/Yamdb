@@ -7,7 +7,7 @@ from rest_framework.validators import UniqueValidator
 from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
 
 
-class AuthSerializer(serializers.Serializer):
+class AuthSerializer(serializers.ModelSerializer):
 
     email = serializers.EmailField(
         validators=[UniqueValidator(queryset=CustomUser.objects.all())],
@@ -17,6 +17,10 @@ class AuthSerializer(serializers.Serializer):
         validators=[UniqueValidator(queryset=CustomUser.objects.all())],
         max_length=150
     )
+
+    class Meta:
+        fields = ('username', 'email')
+        model = CustomUser
 
     def validate_username(self, value):
         """
@@ -48,7 +52,10 @@ class TokenSerializer(serializers.Serializer):
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
-    role = serializers.CharField(read_only=True, default='user')
+    role = serializers.ChoiceField(
+        choices=['admin', 'user', 'moderator'],
+        default='user'
+    )
 
     def validate_username(self, username):
         """

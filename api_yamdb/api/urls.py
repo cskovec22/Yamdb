@@ -3,7 +3,7 @@ from rest_framework import routers
 
 from api.views import (CategoryViewSet, CommentViewSet, CustomUserViewSet,
                        GenreViewSet, ReviewViewSet, SignUp, TitleViewSet,
-                       UsersMeView, Token)
+                       UsersMeView, Token, GenreSlugView, CategorySlugView)
 
 
 app_name = 'api'
@@ -42,6 +42,8 @@ router.register(
 )
 
 urlpatterns = [
+    path('v1/categories/<slug:category>/', CategorySlugView.as_view(), name='category_slug_delete'),
+    path('v1/genres/<slug:genre>/', GenreSlugView.as_view(), name='genre_slug_delete'),
     path('v1/', include(router.urls)),
     path('v1/users/me/', UsersMeView.as_view(), name='users_me'),
     path('v1/auth/signup/', SignUp.as_view(), name='signup'),

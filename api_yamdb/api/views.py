@@ -30,7 +30,46 @@ class MixinsViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     http_method_names = ['get', 'post', 'patch', 'delete']
 
 
-class CustomUserViewSet(viewsets.ModelViewSet):
+class SignUp(APIView):
+    permission_classes = (permissions.AllowAny, )
+
+    def post(self, request, format=None):
+        serializer = AuthSerializer(data=request.data)
+        if serializer.is_valid():
+            confirmation_code = randint(10000, 99999)
+            send_mail(
+                subject='Your confirmation code',
+                message=f'{confirmation_code} - confirmation code',
+                from_email='from@yamdb.com',
+                recipient_list=[serializer.validated_data.get('email')],
+                fail_silently=False,
+            )
+            serializer.save(confirmation_code=confirmation_code)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def get_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+
+    return {
+        'token': str(refresh.access_token),
+    }
+
+
+class Token(APIView):
+    permission_classes = [AllowAny,]
+
+    def post(self, request):
+        serializer = TokenSerializer(data=request.data)
+        if serializer.is_valid():
+            user = get_object_or_404(CustomUser, username=serializer.validated_data.get('username'))
+            token = get_tokens_for_user(user)
+            return Response(token)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CustomUserViewSet(MixinsViewSet):
     filter_backends = (filters.SearchFilter, )
     permission_classes = (IsAdminOnlyPermission, )
     queryset = CustomUser.objects.all()
@@ -59,6 +98,15 @@ class UsersMeView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class CategorySlugView(APIView):
+    permission_classes = (IsAdminOnlyPermission,)
+
+    def delete(self, request, category):
+        category_obj = get_object_or_404(Category, slug=category)
+        category_obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class CategoryViewSet(MixinsViewSet):
     """Вьюсет для просмотра и редактирования категории."""
     filter_backends = (filters.SearchFilter, )
@@ -67,6 +115,15 @@ class CategoryViewSet(MixinsViewSet):
     search_fields = ('name', )
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+
+
+class GenreSlugView(APIView):
+    permission_classes = (IsAdminOnlyPermission,)
+
+    def delete(self, request, genre):
+        genre_obj = get_object_or_404(Genre, slug=genre)
+        genre_obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class GenreViewSet(MixinsViewSet):
@@ -91,45 +148,6 @@ class TitleViewSet(MixinsViewSet):
         if self.request.method in permissions.SAFE_METHODS:
             return TitleGetSerializer
         return TitlePostSerializer
-
-
-def get_tokens_for_user(user):
-    refresh = RefreshToken.for_user(user)
-
-    return {
-        'token': str(refresh.access_token),
-    }
-
-
-class Token(APIView):
-    permission_classes = [AllowAny,]
-
-    def post(self, request):
-        serializer = TokenSerializer(data=request.data)
-        if serializer.is_valid():
-            user = get_object_or_404(CustomUser, username=serializer.validated_data.get('username'))
-            token = get_tokens_for_user(user)
-            return Response(token)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class SignUp(APIView):
-    permission_classes = (permissions.AllowAny, )
-
-    def post(self, request, format=None):
-        serializer = AuthSerializer(data=request.data)
-        if serializer.is_valid():
-            confirmation_code = randint(10000, 99999)
-            send_mail(
-                subject='Your confirmation code',
-                message=f'{confirmation_code} - confirmation code',
-                from_email='from@yamdb.com',
-                recipient_list=[serializer.validated_data.get('email')],
-                fail_silently=False,
-            )
-            serializer.save(confirmation_code=confirmation_code)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CommentViewSet(MixinsViewSet):
