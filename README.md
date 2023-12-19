@@ -33,6 +33,10 @@ pip install -r requirements.txt
 ```
 py manage.py migrate
 ```
+Для тестирования приложения можно заполнить базу данных контентом из приложенных csv-файлов:  
+```
+py manage.py importcsv
+```
 Запустить проект:
 ```
 py manage.py runserver
