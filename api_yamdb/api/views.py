@@ -1,93 +1,112 @@
-from random import randint
-
-import jwt
-from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, permissions, status, viewsets
-from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
-from reviews.models import Category, CustomUser, Genre, Review, Title
 
 from api.filters import TitleFilter
-from api.permissions import (IsAdminOnlyPermission, IsAdminObjectReadOnlyPermission,
+from api.permissions import (IsAdminObjectReadOnlyPermission,
+                             IsAdminOnlyPermission,
                              IsAdminOrReadOnlyPermission, RolesPermission)
 from api.serializers import (AuthSerializer, CategorySerializer,
                              CommentSerializer, CustomUserSerializer,
                              GenreSerializer, ReviewSerializer,
                              TitleGetSerializer, TitlePostSerializer,
                              TokenSerializer)
+from api.utils import get_random_code, get_tokens_for_user, send_code_by_mail
+from reviews.models import Category, CustomUser, Genre, Review, Title
 
 
 class MixinsViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
                     mixins.RetrieveModelMixin, mixins.DestroyModelMixin,
                     mixins.UpdateModelMixin, viewsets.GenericViewSet):
-    # permission_classes = (IsAdminOrReadOnlyPermission, )
+    """
+    Вьюсет миксинов для обработки 'get', 'post', 'patch', и 'delete' методов.
+    """
     http_method_names = ['get', 'post', 'patch', 'delete']
 
 
 class SignUp(APIView):
-    permission_classes = (permissions.AllowAny, )
+    """APIView для регистрации нового пользователя."""
+    permission_classes = (AllowAny, )
 
     def post(self, request, format=None):
+        """
+        Создание нового пользователя,
+        либо обновление 'confirmation code' для текущего.
+        """
         serializer = AuthSerializer(data=request.data)
         if serializer.is_valid():
-            confirmation_code = randint(10000, 99999)
-            send_mail(
-                subject='Your confirmation code',
-                message=f'{confirmation_code} - confirmation code',
-                from_email='from@yamdb.com',
-                recipient_list=[serializer.validated_data.get('email')],
-                fail_silently=False,
-            )
-            serializer.save(confirmation_code=confirmation_code)
+            username = serializer.validated_data.get('username')
+            email = serializer.validated_data.get('email')
+            try:
+                user = CustomUser.objects.get(
+                    username=username,
+                    email=email
+                )
+            except CustomUser.DoesNotExist:
+                if CustomUser.objects.filter(username=username).exists():
+                    raise ValidationError(
+                        'Пользователь с таким логином уже существует!'
+                    )
+                elif CustomUser.objects.filter(email=email):
+                    raise ValidationError(
+                        'Пользователь с таким email уже существует!'
+                    )
+                user = CustomUser.objects.create(
+                    username=username,
+                    email=email
+                )
+            user.confirmation_code = get_random_code()
+            user.save()
+            send_code_by_mail(email, user.confirmation_code)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-def get_tokens_for_user(user):
-    refresh = RefreshToken.for_user(user)
-
-    return {
-        'token': str(refresh.access_token),
-    }
-
-
 class Token(APIView):
-    permission_classes = [AllowAny,]
+    """APIView для создания токена для конкретного пользователя."""
+    permission_classes = (AllowAny,)
 
     def post(self, request):
+        """Получение токена в обмен на 'username' и 'confirmation code'."""
         serializer = TokenSerializer(data=request.data)
         if serializer.is_valid():
-            user = get_object_or_404(CustomUser, username=serializer.validated_data.get('username'))
+            user = get_object_or_404(
+                CustomUser,
+                username=serializer.validated_data.get('username')
+            )
             token = get_tokens_for_user(user)
             return Response(token)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CustomUserViewSet(MixinsViewSet):
-    filter_backends = (filters.SearchFilter, )
-    permission_classes = (IsAdminOnlyPermission, )
+    """Вьюсет для просмотра администратором пользователя."""
+    filter_backends = (filters.SearchFilter,)
+    lookup_field = 'username'
+    permission_classes = (IsAdminOnlyPermission,)
     queryset = CustomUser.objects.all()
     search_fields = ('username',)
     serializer_class = CustomUserSerializer
-    lookup_field = 'username'
 
 
 class UsersMeView(APIView):
+    """APIView для просмотра или редактирования собственного профиля."""
     permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request):
+        """Получает определенный объект пользователя."""
         user = CustomUser.objects.get(username=request.user.username)
         serializer = CustomUserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def patch(self, request):
+        """Редактирует определенный объект пользователя."""
         user = CustomUser.objects.get(username=request.user.username)
         serializer = CustomUserSerializer(
             user,
@@ -100,53 +119,45 @@ class UsersMeView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CategorySlugView(APIView):
-    permission_classes = (IsAdminOnlyPermission,)
-
-    def delete(self, request, category):
-        category_obj = get_object_or_404(Category, slug=category)
-        category_obj.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
 class CategoryViewSet(MixinsViewSet):
     """Вьюсет для просмотра и редактирования категории."""
-    filter_backends = (filters.SearchFilter, )
-    # lookup_field = 'slug'
-    permission_classes = (IsAdminObjectReadOnlyPermission, )
-    search_fields = ('name', )
+    http_method_names = ['get', 'post', 'delete']
+    filter_backends = (filters.SearchFilter,)
+    lookup_field = 'slug'
+    permission_classes = (IsAdminObjectReadOnlyPermission,)
     queryset = Category.objects.all()
+    search_fields = ('name',)
     serializer_class = CategorySerializer
 
-
-class GenreSlugView(APIView):
-    permission_classes = (IsAdminOnlyPermission,)
-
-    def delete(self, request, genre):
-        genre_obj = get_object_or_404(Genre, slug=genre)
-        genre_obj.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def retrieve(self, request, *args, **kwargs):
+        """Запрещает просмотр определённой категории."""
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
-class GenreViewSet(MixinsViewSet):
+class GenreViewSet(viewsets.ModelViewSet):
     """Вьюсет для просмотра и редактирования жанра."""
-    filter_backends = (filters.SearchFilter, )
-    # lookup_field = 'slug'
-    permission_classes = (IsAdminObjectReadOnlyPermission, )
-    search_fields = ('name', )
-    queryset = Genre.objects.all()
+    http_method_names = ['get', 'post', 'delete']
+    filter_backends = (filters.SearchFilter,)
+    lookup_field = 'slug'
+    permission_classes = (IsAdminObjectReadOnlyPermission,)
+    search_fields = ('name',)
     serializer_class = GenreSerializer
+    queryset = Genre.objects.all()
+
+    def retrieve(self, request, *args, **kwargs):
+        """Запрещает просмотр определённого жанра."""
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class TitleViewSet(MixinsViewSet):
     """Вьюсет для просмотра и редактирования произведения."""
     filterset_class = TitleFilter
     filter_backends = [DjangoFilterBackend]
-    permission_classes = (IsAdminOrReadOnlyPermission, )
+    permission_classes = (IsAdminOrReadOnlyPermission,)
     queryset = Title.objects.annotate(rating=Avg('reviews__score'))
-    # serializer_class = TitleSerializer
 
     def get_serializer_class(self):
+        """Определяет класс сериализатора в зависимости от метода."""
         if self.request.method in permissions.SAFE_METHODS:
             return TitleGetSerializer
         return TitlePostSerializer
@@ -155,7 +166,7 @@ class TitleViewSet(MixinsViewSet):
 class CommentViewSet(MixinsViewSet):
     """Вьюсет для просмотра и редактирования комментария."""
     pagination_class = PageNumberPagination
-    permission_classes = (IsAuthenticatedOrReadOnly, RolesPermission, )
+    permission_classes = (IsAuthenticatedOrReadOnly, RolesPermission,)
     serializer_class = CommentSerializer
 
     def get_review(self):

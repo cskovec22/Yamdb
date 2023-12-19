@@ -43,7 +43,7 @@ class IsAdminOrReadOnlyPermission(permissions.BasePermission):
 
 class IsAdminOnlyPermission(permissions.BasePermission):
     """
-    Разрешение, предоставляющее доступ к объекту только администратору.
+    Разрешение, предоставляющее доступ только администратору.
     """
     def has_permission(self, request, view):
         return (

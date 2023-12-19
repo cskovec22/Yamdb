@@ -1,20 +1,19 @@
 from datetime import datetime
 
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MaxValueValidator
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
+
 from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
 
 
 class AuthSerializer(serializers.ModelSerializer):
+    """Сериализатор для системы регистрации и аутентификации."""
 
     email = serializers.EmailField(
-        validators=[UniqueValidator(queryset=CustomUser.objects.all())],
         max_length=254
     )
     username = serializers.SlugField(
-        validators=[UniqueValidator(queryset=CustomUser.objects.all())],
         max_length=150
     )
 
@@ -23,9 +22,7 @@ class AuthSerializer(serializers.ModelSerializer):
         model = CustomUser
 
     def validate_username(self, value):
-        """
-        Проверяет, что значение поля 'username' не 'me'.
-        """
+        """Проверяет, что значение поля 'username' не 'me'."""
         if value == 'me':
             raise serializers.ValidationError(
                 'Данное имя пользователя запрещено!'
@@ -33,29 +30,32 @@ class AuthSerializer(serializers.ModelSerializer):
         return value
 
 
-class Token():
-    def init(self, username, confirmation_code):
-        self.username = username
-        self.confirmation_code = confirmation_code
-
-
 class TokenSerializer(serializers.Serializer):
-
+    """Сериализатор для токена."""
     username = serializers.SlugField(max_length=150)
     confirmation_code = serializers.CharField()
 
     def validate(self, data):
+        """Проверяет, что переданный код совпадает с кодом пользователя."""
         user = get_object_or_404(CustomUser, username=data['username'])
         if user.confirmation_code != data['confirmation_code']:
-            raise serializers.ValidationError("Неправильный код подтверждения!")
+            raise serializers.ValidationError(
+                "Неправильный код подтверждения!"
+            )
         return data
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
+    """Сериализатор для кастомного пользователя."""
     role = serializers.ChoiceField(
         choices=['admin', 'user', 'moderator'],
         default='user'
     )
+
+    class Meta:
+        model = CustomUser
+        fields = ('username', 'email', 'first_name',
+                  'last_name', 'bio', 'role')
 
     def validate_username(self, username):
         """
@@ -66,11 +66,6 @@ class CustomUserSerializer(serializers.ModelSerializer):
                 'Данное имя пользователя запрещено!'
             )
         return username
-
-    class Meta:
-        model = CustomUser
-        fields = ('username', 'email', 'first_name',
-                  'last_name', 'bio', 'role')
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -109,7 +104,6 @@ class TitlePostSerializer(serializers.ModelSerializer):
         slug_field='slug',
         queryset=Genre.objects.all(),
         many=True,
-        # required=False,
     )
     year = serializers.IntegerField(
         validators=[MaxValueValidator(datetime.now().year)]
@@ -144,7 +138,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """
-        Проверка, что пользователь не оставлял отзыв на текущее произведение.
+        Проверяет, что пользователь не оставлял отзыв на текущее произведение.
         """
         if self.context['request'].method in ('PUT', 'PATCH'):
             return data
@@ -154,7 +148,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         author = self.context['request'].user
         if author.reviews.filter(title=title).exists():
             raise serializers.ValidationError(
-                (f'Отзыв к произведению {title.pk} '  # Поменять 'pk' на 'name'
+                (f'Отзыв к произведению {title.name} '
                  f'от пользователя {author.username} уже существует!')
             )
         return data
