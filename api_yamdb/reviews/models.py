@@ -66,12 +66,6 @@ class CustomUser(AbstractUser):
         max_length=len(USER_ROLES[1][0]),
         verbose_name='Роль'
     )
-    # confirmation_code = models.CharField(
-    #     blank=True,
-    #     max_length=6,
-    #     null=True,
-    #     verbose_name='Код подтверждения',
-    # )
 
     class Meta:
         ordering = ('username',)
@@ -137,7 +131,7 @@ class Title(models.Model):
         max_length=256,
         verbose_name='Название'
     )
-    year = models.IntegerField(
+    year = models.PositiveSmallIntegerField(
         db_index=True, verbose_name='Год'
     )
     description = models.TextField(
