@@ -48,8 +48,6 @@ url_auth = [
 
 urlpatterns = [
     path('v1/users/me/', UsersMeView.as_view(), name='users_me'),
-    # path('v1/auth/signup/', SignUp.as_view(), name='signup'),
-    # path('v1/auth/token/', Token.as_view(), name='token'),
     path('v1/auth/', include(url_auth)),
     path('v1/', include(router.urls)),
 ]

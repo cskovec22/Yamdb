@@ -4,9 +4,9 @@ from django.core.validators import MaxValueValidator
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
-from reviews.models import (Category, Comment, CustomUser,
-                            Genre, MAX_VALUE_SCORE, MIN_VALUE_SCORE,
-                            Review, Title, USER_ROLES)
+from reviews.models import (MAX_VALUE_SCORE, MIN_VALUE_SCORE, USER_ROLES,
+                            Category, Comment, CustomUser, Genre, Review,
+                            Title)
 
 
 class AuthSerializer(serializers.ModelSerializer):
@@ -50,7 +50,6 @@ class TokenSerializer(serializers.Serializer):
 class CustomUserSerializer(serializers.ModelSerializer):
     """Сериализатор для кастомного пользователя."""
     role = serializers.ChoiceField(
-        # choices=['admin', 'user', 'moderator'],
         choices=USER_ROLES,
         default='user'
     )

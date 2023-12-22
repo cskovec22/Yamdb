@@ -1,14 +1,7 @@
-from random import randint
-
 from django.core.mail import send_mail
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api_yamdb.settings import USER_EMAIL
-
-
-# def get_random_code():
-#     """Функция создает рандомный пятизначный код из цифр."""
-#     return str(randint(10000, 99999))
 
 
 def send_code_by_mail(email, random_code):

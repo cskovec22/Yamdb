@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from rest_framework.views import APIView
 
+from reviews.models import Category, CustomUser, Genre, Review, Title
 from api.filters import TitleFilter
 from api.permissions import (IsAdminObjectReadOnlyPermission,
                              IsAdminOnlyPermission,
@@ -19,7 +20,6 @@ from api.serializers import (AuthSerializer, CategorySerializer,
                              TitleGetSerializer, TitlePostSerializer,
                              TokenSerializer)
 from api.utils import get_tokens_for_user, send_code_by_mail
-from reviews.models import Category, CustomUser, Genre, Review, Title
 
 
 class MixinsViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
@@ -67,7 +67,6 @@ class SignUp(APIView):
         user.save()
         send_code_by_mail(email, user.confirmation_code)
         return Response(serializer.data, status=status.HTTP_200_OK)
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class Token(APIView):
@@ -84,7 +83,6 @@ class Token(APIView):
         )
         token = get_tokens_for_user(user)
         return Response(token)
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CustomUserViewSet(MixinsViewSet):
@@ -103,22 +101,19 @@ class UsersMeView(APIView):
 
     def get(self, request):
         """Получает определенный объект пользователя."""
-        user = CustomUser.objects.get(username=request.user.username)
-        serializer = CustomUserSerializer(user)
+        serializer = CustomUserSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def patch(self, request):
         """Редактирует определенный объект пользователя."""
-        user = CustomUser.objects.get(username=request.user.username)
         serializer = CustomUserSerializer(
-            user,
+            request.user,
             data=request.data,
             partial=True
         )
         serializer.is_valid(raise_exception=True)
         serializer.save(role=request.user.role)
         return Response(serializer.data, status=status.HTTP_200_OK)
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CategoryViewSet(MixinsViewSet):
