@@ -33,7 +33,7 @@ class MixinsViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
 class SignUp(APIView):
     """APIView для регистрации нового пользователя."""
-    permission_classes = (AllowAny, )
+    permission_classes = (AllowAny,)
 
     def post(self, request, format=None):
         """
@@ -62,10 +62,9 @@ class SignUp(APIView):
                 username=username,
                 email=email
             )
-            # user.confirmation_code = get_random_code()
-        user.confirmation_code = default_token_generator.make_token(user)
+        confirmation_code = default_token_generator.make_token(user)
         user.save()
-        send_code_by_mail(email, user.confirmation_code)
+        send_code_by_mail(email, confirmation_code)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 

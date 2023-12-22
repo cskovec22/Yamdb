@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from django.contrib.auth.tokens import default_token_generator
 from django.core.validators import MaxValueValidator
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
@@ -40,7 +41,8 @@ class TokenSerializer(serializers.Serializer):
     def validate(self, data):
         """Проверяет, что переданный код совпадает с кодом пользователя."""
         user = get_object_or_404(CustomUser, username=data['username'])
-        if user.confirmation_code != data['confirmation_code']:
+        confirmation_code = data['confirmation_code']
+        if not default_token_generator.check_token(user, confirmation_code):
             raise serializers.ValidationError(
                 'Неправильный код подтверждения!'
             )

@@ -36,16 +36,26 @@ class CustomUser(AbstractUser):
         max_length=150,
         unique=True,
         validators=[username_validator],
-        verbose_name='Имя пользователя'
+        verbose_name='Имя пользователя',
+        help_text='Введите уникальный логин, не более 150 символов'
     )
     first_name = models.CharField(
-        blank=True, max_length=150, verbose_name='Имя'
+        blank=True,
+        max_length=150,
+        verbose_name='Имя',
+        help_text='Введите имя, не более 150 символов'
     )
     last_name = models.CharField(
-        blank=True, max_length=150, verbose_name='Фамилия'
+        blank=True,
+        max_length=150,
+        verbose_name='Фамилия',
+        help_text='Введите фамилию, не более 150 символов'
     )
     email = models.EmailField(
-        max_length=254, unique=True, verbose_name='Почта'
+        max_length=254,
+        unique=True,
+        verbose_name='Почта',
+        help_text='Введите email, не более 254 символа'
     )
     bio = models.TextField(
         blank=True, verbose_name='Биография'
@@ -56,12 +66,12 @@ class CustomUser(AbstractUser):
         max_length=len(USER_ROLES[1][0]),
         verbose_name='Роль'
     )
-    confirmation_code = models.CharField(
-        blank=True,
-        max_length=6,
-        null=True,
-        verbose_name='Код подтверждения',
-    )
+    # confirmation_code = models.CharField(
+    #     blank=True,
+    #     max_length=6,
+    #     null=True,
+    #     verbose_name='Код подтверждения',
+    # )
 
     class Meta:
         ordering = ('username',)
@@ -123,6 +133,7 @@ class Genre(models.Model):
 class Title(models.Model):
     """Модель произведения."""
     name = models.CharField(
+        help_text='Введите название произведения, не более 256 символов',
         max_length=256,
         verbose_name='Название'
     )
