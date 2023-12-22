@@ -5,7 +5,16 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.utils.translation import gettext_lazy as _
+
+
+MIN_VALUE_SCORE = 1
+MAX_VALUE_SCORE = 10
+
+USER_ROLES = (
+    ('user', 'пользователь'),
+    ('moderator', 'модератор'),
+    ('admin', 'администратор')
+)
 
 
 class BaseModel(models.Model):
@@ -22,11 +31,6 @@ class BaseModel(models.Model):
 class CustomUser(AbstractUser):
     """Кастомная модель юзера."""
     username_validator = UnicodeUsernameValidator()
-
-    class Users(models.TextChoices):
-        USER = "user", _("пользователь")
-        MODERATOR = "moderator", _("модератор")
-        ADMIN = "admin", _("администратор")
 
     username = models.CharField(
         max_length=150,
@@ -46,22 +50,29 @@ class CustomUser(AbstractUser):
     bio = models.TextField(
         blank=True, verbose_name='Биография'
     )
-    role = models.TextField(
-        choices=Users.choices,
-        default=Users.USER,
-        verbose_name="Роль"
+    role = models.CharField(
+        choices=USER_ROLES,
+        default='user',
+        verbose_name='Роль'
     )
     confirmation_code = models.CharField(
         blank=True,
         max_length=6,
         null=True,
-        verbose_name="Код подтверждения",
+        verbose_name='Код подтверждения',
     )
 
     class Meta:
         ordering = ('username',)
         verbose_name = 'пользователь'
         verbose_name_plural = 'Пользователи'
+
+    def __str__(self):
+        return self.username
+
+    @property
+    def is_admin(self):
+        return self.role == USER_ROLES[2][0] or self.is_staff
 
 
 class Category(models.Model):
@@ -78,7 +89,7 @@ class Category(models.Model):
     )
 
     class Meta:
-        ordering = ('name', )
+        ordering = ('name',)
         verbose_name = 'категория'
         verbose_name_plural = 'Категории'
 
@@ -100,7 +111,7 @@ class Genre(models.Model):
     )
 
     class Meta:
-        ordering = ('name', )
+        ordering = ('name',)
         verbose_name = 'жанр'
         verbose_name_plural = 'Жанры'
 
@@ -124,7 +135,7 @@ class Title(models.Model):
     )
     genre = models.ManyToManyField(
         Genre,
-        through="GenreTitle",
+        through='GenreTitle',
         verbose_name='Жанр'
     )
     category = models.ForeignKey(
@@ -136,7 +147,7 @@ class Title(models.Model):
     )
 
     class Meta:
-        ordering = ('name', )
+        ordering = ('name',)
         verbose_name = 'произведение'
         verbose_name_plural = 'Произведения'
 
@@ -153,11 +164,24 @@ class Title(models.Model):
 
 class GenreTitle(models.Model):
     """Модель, связывающая произведения и жанры."""
-    title = models.ForeignKey(Title, on_delete=models.CASCADE)
-    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
+    title = models.ForeignKey(
+        Title,
+        on_delete=models.CASCADE,
+        verbose_name='Произведение'
+    )
+    genre = models.ForeignKey(
+        Genre,
+        on_delete=models.CASCADE,
+        verbose_name='Жанр'
+    )
+
+    class Meta:
+        ordering = ('title',)
+        verbose_name = 'произведение-жанр'
+        verbose_name_plural = 'Произведения-жанры'
 
     def __str__(self):
-        return f"{self.title} - {self.genre}"
+        return f'{self.title} - {self.genre}'
 
 
 class Review(BaseModel):
@@ -171,7 +195,10 @@ class Review(BaseModel):
     )
     score = models.PositiveSmallIntegerField(
         'Оценка',
-        validators=[MinValueValidator(1), MaxValueValidator(10)]
+        validators=[
+            MinValueValidator(MIN_VALUE_SCORE),
+            MaxValueValidator(MAX_VALUE_SCORE)
+        ]
     )
     title = models.ForeignKey(
         Title,
@@ -187,7 +214,7 @@ class Review(BaseModel):
                 name='review_author_title_unique',
             ),
         )
-        ordering = ('-pub_date', )
+        ordering = ('-pub_date',)
         verbose_name = 'отзыв'
         verbose_name_plural = 'Отзывы'
 
@@ -212,7 +239,7 @@ class Comment(BaseModel):
     )
 
     class Meta:
-        ordering = ('-pub_date', )
+        ordering = ('-pub_date',)
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
 

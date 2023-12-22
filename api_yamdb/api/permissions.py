@@ -1,6 +1,6 @@
 from rest_framework import permissions
 
-ROLES = ('admin', 'moderator')
+from reviews.models import USER_ROLES
 
 
 class IsAdminObjectReadOnlyPermission(permissions.BasePermission):
@@ -11,13 +11,13 @@ class IsAdminObjectReadOnlyPermission(permissions.BasePermission):
         return (
             request.method in permissions.SAFE_METHODS
             or request.user.is_authenticated
-            and (request.user.is_staff or request.user.role == ROLES[0])
+            and request.user.is_admin
         )
 
     def has_object_permission(self, request, view, obj):
         return (
             request.user.is_authenticated
-            and (request.user.is_staff or request.user.role == ROLES[0])
+            and request.user.is_admin
         )
 
 
@@ -30,14 +30,14 @@ class IsAdminOrReadOnlyPermission(permissions.BasePermission):
         return (
             request.method in permissions.SAFE_METHODS
             or request.user.is_authenticated
-            and (request.user.is_staff or request.user.role == ROLES[0])
+            and request.user.is_admin
         )
 
     def has_object_permission(self, request, view, obj):
         return (
             request.method in permissions.SAFE_METHODS
             or request.user.is_authenticated
-            and (request.user.is_staff or request.user.role == ROLES[0])
+            and request.user.is_admin
         )
 
 
@@ -48,13 +48,13 @@ class IsAdminOnlyPermission(permissions.BasePermission):
     def has_permission(self, request, view):
         return (
             request.user.is_authenticated
-            and (request.user.is_staff or request.user.role == ROLES[0])
+            and request.user.is_admin
         )
 
     def has_object_permission(self, request, view, obj):
         return (
             request.user.is_authenticated
-            and (request.user.is_staff or request.user.role == ROLES[0])
+            and request.user.is_admin
         )
 
 
@@ -67,5 +67,9 @@ class RolesPermission(permissions.BasePermission):
         return (
             obj.author == request.user
             or request.method in permissions.SAFE_METHODS
-            or request.user.is_authenticated and request.user.role in ROLES
+            or request.user.is_authenticated
+            and (
+                request.user.is_admin
+                or request.user.role == USER_ROLES[1][0]
+            )
         )

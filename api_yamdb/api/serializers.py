@@ -4,7 +4,9 @@ from django.core.validators import MaxValueValidator
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
-from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
+from reviews.models import (Category, Comment, CustomUser,
+                            Genre, MAX_VALUE_SCORE, MIN_VALUE_SCORE,
+                            Review, Title, USER_ROLES)
 
 
 class AuthSerializer(serializers.ModelSerializer):
@@ -40,7 +42,7 @@ class TokenSerializer(serializers.Serializer):
         user = get_object_or_404(CustomUser, username=data['username'])
         if user.confirmation_code != data['confirmation_code']:
             raise serializers.ValidationError(
-                "Неправильный код подтверждения!"
+                'Неправильный код подтверждения!'
             )
         return data
 
@@ -48,7 +50,8 @@ class TokenSerializer(serializers.Serializer):
 class CustomUserSerializer(serializers.ModelSerializer):
     """Сериализатор для кастомного пользователя."""
     role = serializers.ChoiceField(
-        choices=['admin', 'user', 'moderator'],
+        # choices=['admin', 'user', 'moderator'],
+        choices=USER_ROLES,
         default='user'
     )
 
@@ -134,7 +137,10 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only=True,
         slug_field='username'
     )
-    score = serializers.IntegerField(max_value=10, min_value=1)
+    score = serializers.IntegerField(
+        min_value=MIN_VALUE_SCORE,
+        max_value=MAX_VALUE_SCORE
+    )
 
     def validate(self, data):
         """
