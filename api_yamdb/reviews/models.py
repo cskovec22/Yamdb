@@ -53,6 +53,7 @@ class CustomUser(AbstractUser):
     role = models.CharField(
         choices=USER_ROLES,
         default='user',
+        max_length=len(USER_ROLES[1][0]),
         verbose_name='Роль'
     )
     confirmation_code = models.CharField(

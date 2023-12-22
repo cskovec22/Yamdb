@@ -1,3 +1,4 @@
+from django.contrib.auth.tokens import default_token_generator
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -17,7 +18,7 @@ from api.serializers import (AuthSerializer, CategorySerializer,
                              GenreSerializer, ReviewSerializer,
                              TitleGetSerializer, TitlePostSerializer,
                              TokenSerializer)
-from api.utils import get_random_code, get_tokens_for_user, send_code_by_mail
+from api.utils import get_tokens_for_user, send_code_by_mail
 from reviews.models import Category, CustomUser, Genre, Review, Title
 
 
@@ -40,32 +41,33 @@ class SignUp(APIView):
         либо обновление 'confirmation code' для текущего.
         """
         serializer = AuthSerializer(data=request.data)
-        if serializer.is_valid():
-            username = serializer.validated_data.get('username')
-            email = serializer.validated_data.get('email')
-            try:
-                user = CustomUser.objects.get(
-                    username=username,
-                    email=email
+        serializer.is_valid(raise_exception=True)
+        username = serializer.validated_data.get('username')
+        email = serializer.validated_data.get('email')
+        try:
+            user = CustomUser.objects.get(
+                username=username,
+                email=email
+            )
+        except CustomUser.DoesNotExist:
+            if CustomUser.objects.filter(username=username).exists():
+                raise ValidationError(
+                    'Пользователь с таким логином уже существует!'
                 )
-            except CustomUser.DoesNotExist:
-                if CustomUser.objects.filter(username=username).exists():
-                    raise ValidationError(
-                        'Пользователь с таким логином уже существует!'
-                    )
-                elif CustomUser.objects.filter(email=email):
-                    raise ValidationError(
-                        'Пользователь с таким email уже существует!'
-                    )
-                user = CustomUser.objects.create(
-                    username=username,
-                    email=email
+            elif CustomUser.objects.filter(email=email):
+                raise ValidationError(
+                    'Пользователь с таким email уже существует!'
                 )
-            user.confirmation_code = get_random_code()
-            user.save()
-            send_code_by_mail(email, user.confirmation_code)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            user = CustomUser.objects.create(
+                username=username,
+                email=email
+            )
+            # user.confirmation_code = get_random_code()
+        user.confirmation_code = default_token_generator.make_token(user)
+        user.save()
+        send_code_by_mail(email, user.confirmation_code)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class Token(APIView):
@@ -75,14 +77,14 @@ class Token(APIView):
     def post(self, request):
         """Получение токена в обмен на 'username' и 'confirmation code'."""
         serializer = TokenSerializer(data=request.data)
-        if serializer.is_valid():
-            user = get_object_or_404(
-                CustomUser,
-                username=serializer.validated_data.get('username')
-            )
-            token = get_tokens_for_user(user)
-            return Response(token)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        user = get_object_or_404(
+            CustomUser,
+            username=serializer.validated_data.get('username')
+        )
+        token = get_tokens_for_user(user)
+        return Response(token)
+        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CustomUserViewSet(MixinsViewSet):
@@ -113,10 +115,10 @@ class UsersMeView(APIView):
             data=request.data,
             partial=True
         )
-        if serializer.is_valid():
-            serializer.save(role=request.user.role)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(role=request.user.role)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CategoryViewSet(MixinsViewSet):
@@ -172,7 +174,8 @@ class CommentViewSet(MixinsViewSet):
     def get_review(self):
         """Получает конкретный отзыв."""
         review_id = self.kwargs.get('review_id')
-        return get_object_or_404(Review, pk=review_id)
+        title_id = self.kwargs.get('title_id')
+        return get_object_or_404(Review, pk=review_id, title_id=title_id)
 
     def get_queryset(self):
         """Возвращает queryset c комментариями для конкретного отзыва."""
