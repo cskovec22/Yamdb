@@ -3,6 +3,9 @@ from django.contrib import admin
 from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
 
 
+MAX_DISPLAY_LENGTH = 50
+
+
 class GenreAdmin(admin.ModelAdmin):
     list_display_links = ("name",)
     list_display = ("name", "slug")
@@ -35,16 +38,21 @@ class CustomUserAdmin(admin.ModelAdmin):
     search_fields = ("username", "first_name", "last_name", "email")
 
 
+@admin.display(description="Текст отзыва")
+def get_short_text(obj):
+    return obj.text[:MAX_DISPLAY_LENGTH] + "..."
+
+
 class ReviewAdmin(admin.ModelAdmin):
-    list_display_links = ("text",)
-    list_display = ("text", "author", "score", "title")
+    list_display_links = (get_short_text,)
+    list_display = (get_short_text, "author", "score", "title")
     list_filter = (
         "author",
         "score",
         "title",
     )
     search_fields = (
-        "text",
+        get_short_text,
         "author",
         "title",
     )
@@ -58,12 +66,12 @@ class CategorAdmin(admin.ModelAdmin):
 
 class CommentAdmin(admin.ModelAdmin):
     list_display_links = ("text",)
-    list_display = ("text", "author", "review")
+    list_display = ("text", "author", get_short_text)
     list_filter = ("author",)
     search_fields = (
         "text",
         "author",
-        "review",
+        get_short_text,
     )
 
 
