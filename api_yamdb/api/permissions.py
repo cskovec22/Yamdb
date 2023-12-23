@@ -1,7 +1,5 @@
 from rest_framework import permissions
 
-from reviews.models import USER_ROLES
-
 
 class IsAdminObjectReadOnlyPermission(permissions.BasePermission):
     """
@@ -63,7 +61,5 @@ class RolesPermission(permissions.BasePermission):
             obj.author == request.user
             or request.method in permissions.SAFE_METHODS
             or request.user.is_authenticated
-            and (
-                request.user.is_admin or request.user.role == USER_ROLES[1][0]
-            )
+            and (request.user.is_admin or request.user.is_moderator)
         )

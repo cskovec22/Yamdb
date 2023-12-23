@@ -5,16 +5,11 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils.translation import ugettext_lazy as _
 
 
 MIN_VALUE_SCORE = 1
 MAX_VALUE_SCORE = 10
-
-USER_ROLES = (
-    ("user", "пользователь"),
-    ("moderator", "модератор"),
-    ("admin", "администратор"),
-)
 
 
 class BaseModel(models.Model):
@@ -28,6 +23,11 @@ class BaseModel(models.Model):
 
 class CustomUser(AbstractUser):
     """Кастомная модель юзера."""
+
+    class Roles(models.TextChoices):
+        USER = ("user", _("Пользователь"))
+        MODERATOR = ("moderator", _("Модератор"))
+        ADMIN = ("admin", _("Администратор"))
 
     username_validator = UnicodeUsernameValidator()
 
@@ -58,9 +58,9 @@ class CustomUser(AbstractUser):
     )
     bio = models.TextField(blank=True, verbose_name="Биография")
     role = models.CharField(
-        choices=USER_ROLES,
+        choices=Roles.choices,
         default="user",
-        max_length=len(USER_ROLES[1][0]),
+        max_length=len(Roles.MODERATOR),
         verbose_name="Роль",
     )
 
@@ -74,7 +74,11 @@ class CustomUser(AbstractUser):
 
     @property
     def is_admin(self):
-        return self.role == USER_ROLES[2][0] or self.is_staff
+        return self.role == self.Roles.ADMIN or self.is_staff
+
+    @property
+    def is_moderator(self):
+        return self.role == self.Roles.MODERATOR
 
 
 class Category(models.Model):

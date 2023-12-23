@@ -8,7 +8,6 @@ from rest_framework import serializers
 from reviews.models import (
     MAX_VALUE_SCORE,
     MIN_VALUE_SCORE,
-    USER_ROLES,
     Category,
     Comment,
     CustomUser,
@@ -57,7 +56,7 @@ class TokenSerializer(serializers.Serializer):
 class CustomUserSerializer(serializers.ModelSerializer):
     """Сериализатор для кастомного пользователя."""
 
-    role = serializers.ChoiceField(choices=USER_ROLES, default="user")
+    role = serializers.ChoiceField(choices=CustomUser.Roles, default="user")
 
     class Meta:
         model = CustomUser

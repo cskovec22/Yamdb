@@ -1,7 +1,6 @@
+from django.conf import settings
 from django.core.mail import send_mail
 from rest_framework_simplejwt.tokens import RefreshToken
-
-from api_yamdb.settings import USER_EMAIL
 
 
 def send_code_by_mail(email, random_code):
@@ -9,7 +8,7 @@ def send_code_by_mail(email, random_code):
     send_mail(
         subject="Your confirmation code",
         message=f"{random_code} - confirmation code",
-        from_email=USER_EMAIL,
+        from_email=settings.USER_EMAIL,
         recipient_list=[email],
         fail_silently=False,
     )
